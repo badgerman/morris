@@ -5,11 +5,14 @@ local board = { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 local player = 1
 local places = { 0, 0, 0, 0, 0, 0 }
 local piece = 1
+local pickup = 0
 local left, top
-local snd_click
+local snd_click, snd_error, snd_pickup
 
 function love.load()
     snd_click = love.audio.newSource("zipclick.wav", "static")
+    snd_pickup = love.audio.newSource("pickup.wav", "static")
+    snd_error = love.audio.newSource("alert.wav", "static")
     love.window.setTitle("Three Men's Morris")
     img = love.graphics.newImage("pieces.png")
     qboard = love.graphics.newQuad(356, 0, 668, 647, img:getDimensions())
@@ -28,7 +31,7 @@ local offset = {
 
 function love.draw()
     local x, y, w, h = qboard:getViewport()
-    local width, height = love.window.getDimensions()
+    local width, height = love.graphics.getDimensions()
     left = (width - w) / 2
     top = (height - h) / 2
     love.graphics.draw(img, qboard, left, top)
@@ -74,16 +77,24 @@ local function find_closest(x, y)
     return tx+ty*3-3
 end
 
+function love.keyreleased(key)
+    if key == "escape" then
+        love.event.quit()
+    end
+end
+
 function love.mousereleased(x, y, b)
-    if b == "l" then
+    if b == "l" or b == 1 then
         loc = find_closest(x, y)
         if loc > 0 then
             if piece > 0 then
-                if board[loc]==0 then
+                if board[loc]==0 and loc~=pickup then
                     places[piece] = loc
                     board[loc] = piece
                     swap_player()
                     snd_click:play()
+                else
+                    snd_error:play()
                 end
             else
                 local ppl = math.floor((board[loc]-1) / 3)+1
@@ -91,8 +102,14 @@ function love.mousereleased(x, y, b)
                     piece = board[loc]
                     places[piece] = 0
                     board[loc] = 0
+                    pickup = loc
+                    snd_pickup:play()
+                else
+                    snd_error:play()
                 end
             end
+        else
+            snd_error:play()
         end
     end
 end
